@@ -8,7 +8,10 @@ function params = getQzsDvaParams(options)
 %   幅频曲线复现及非线性对吸振性能影响的对比分析。
 %
 %   可选 Name-Value 参数:
-%       isPrintSummary - 是否在命令行打印吸振器固有频率摘要 (默认 false)
+%       isPrintSummary     - 是否在命令行打印吸振器固有频率摘要 (默认 false)
+%       needDimensionless  - 是否追加 HBM 无量纲参数 (默认 false)
+%       R_m                - 特征长度，用于位移无量纲化 (默认 0.001 m)
+%       F_N                - 简谐激振力幅值 (默认 5 N)
 %
 %   输出 params 结构体字段:
 %       m0, k0, c0, xi0  - 主结构质量、刚度、阻尼系数、阻尼比
@@ -18,12 +21,19 @@ function params = getQzsDvaParams(options)
 %       w1Origin, f1Origin_Hz   - 吸振器原始线性固有频率
 %       w1Residual, f1Residual_Hz - 残余刚度 (kn1) 对应的固有频率
 %
+%   当 needDimensionless 为 true 时，额外输出:
+%       mu, lambda, alpha_n3, X_force, R_m, F_N
+%
 %   示例:
 %       p = getQzsDvaParams();
 %       p = getQzsDvaParams('isPrintSummary', true);
+%       p = getQzsDvaParams('needDimensionless', true, 'R_m', 1e-3, 'F_N', 5);
 
 arguments
     options.isPrintSummary (1, 1) logical = false
+    options.needDimensionless (1, 1) logical = false
+    options.R_m (1, 1) double {mustBePositive} = 1e-3
+    options.F_N (1, 1) double {mustBePositive} = 5
 end
 
 % --- 主结构 ---
@@ -54,9 +64,26 @@ params.f1Origin_Hz = params.w1Origin / (2 * pi);
 params.w1Residual = sqrt(params.kn1 / params.m1);
 params.f1Residual_Hz = params.w1Residual / (2 * pi);
 
+if options.needDimensionless
+    % 以吸振器残余频率 w1Residual 为特征频率、R_m 为特征长度进行无量纲化
+    params.R_m = options.R_m;
+    params.F_N = options.F_N;
+
+    params.mu = params.m1 / params.m0;
+    params.lambda = params.w0 / params.w1Residual;
+    params.alpha_n3 = params.kn3 * params.R_m^2 / params.kn1;
+    params.alpha0 = params.k0 / params.kn1;
+    params.X_force = params.F_N / (params.kn1 * params.R_m);
+    % xi0、xi1 本身即为阻尼比，无需再换算
+end
+
 if options.isPrintSummary
     fprintf('吸振器原始固有频率: %.4f Hz\n', params.f1Origin_Hz);
     fprintf('吸振器残余刚度产生的固有频率: %.4f Hz\n', params.f1Residual_Hz);
+    if options.needDimensionless
+        fprintf('无量纲: mu=%.4f, lambda=%.4f, alpha_n3=%.4e, X_force=%.4f\n', ...
+            params.mu, params.lambda, params.alpha_n3, params.X_force);
+    end
 end
 
 end
