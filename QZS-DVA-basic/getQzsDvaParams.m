@@ -33,25 +33,25 @@ arguments
     options.isPrintSummary (1, 1) logical = false
     options.needDimensionless (1, 1) logical = false
     options.R_m (1, 1) double {mustBePositive} = 1e-3
-    options.F_N (1, 1) double {mustBePositive} = 5
+    options.F_N (1, 1) double {mustBePositive} = 0.2   % 简谐激振力幅值(N)
 end
 
 % --- 主结构 ---
 params.m0 = 10;        % 主结构质量 (kg)
-params.k0 = 15000;     % 主结构刚度 (N/m)
-params.xi0 = 0.003;    % 主结构阻尼比
+params.k0 = 1500;     % 主结构刚度 (N/m)
+params.xi0 = 0.03;    % 主结构阻尼比
 
 % --- 吸振器 (QZS-DVA) ---
 params.m1 = 2.5;       % 吸振器质量 (kg)
 params.k1 = 3400;      % 吸振器线性正刚度 (N/m)
-params.xi1 = 0.005;    % 吸振器阻尼比
+params.xi1 = 0.03;    % 吸振器阻尼比
 
 % 吸振器非线性刚度: F_n = kn1 * x + kn3 * x^3
 params.kn1 = 360.8;    % 非线性一次项刚度 (N/m)，准零刚度设计后的残余刚度
 params.kn3 = 1.73e7;   % 非线性三次项刚度 (N/m^3)
 
 % --- 由阻尼比导出的 viscous 阻尼系数 ---
-params.c1 = 2 * params.xi1 * sqrt(params.k1 * params.m1);
+params.c1 = 2 * params.xi1 * sqrt(params.kn1 * params.m1);
 params.c0 = 2 * params.xi0 * sqrt(params.k0 * params.m0);
 
 % --- 便于幅频扫描的固有频率量 ---
@@ -73,7 +73,7 @@ if options.needDimensionless
     params.lambda = params.w0 / params.w1Residual;
     params.alpha_n3 = params.kn3 * params.R_m^2 / params.kn1;
     params.alpha0 = params.k0 / params.kn1;
-    params.X_force = params.F_N / (params.kn1 * params.R_m);
+    params.X_force = params.mu * params.F_N / (params.kn1 * params.R_m);
     % xi0、xi1 本身即为阻尼比，无需再换算
 end
 
