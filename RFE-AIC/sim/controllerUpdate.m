@@ -38,25 +38,23 @@ edd = meas.ydd - meas.ym_dd;
 [By,  st.bp_y]  = localBp(meas.y,   st.bp_y,  fltSys);
 [Byd, st.bp_yd] = localBp(meas.yd,  st.bp_yd, fltSys);
 % edd£º´øÍ¨ ¡ú Ò»½×µÍÍ¨
-[a_f,st.bp_edd,st.lp_edd]= localCascade(edd, st.bp_edd,st.lp_edd,fltSys);
+[a_f_raw, st.lp_edd] = localLp(edd,     st.lp_edd, fltSys);   % ¿ØÖÆÂÉÓÃ
+[a_f,     st.bp_edd] = localBp(a_f_raw, st.bp_edd, fltSys);   % ×ÔÊÊÓ¦ÂÉÓÃ
 
-% --- 7.3 ¸´ºÏÎó²îÃæ ---
-s = Bed + w1*Be + w2*a_f;
 
-% --- 7.4 / 7.5 ÒÑÖª²¹³¥ + Î´Öª¼¯×Ü¹À¼Æ ---
-F_known   = -cm*Bed - km*Be;
-F_unc_hat = st.dk_hat*By + st.dc_hat*Byd;
+% --- 7.3 / 7.4 / 7.5 Îó²îÃæ + ÒÑÖª²¹³¥ + Î´Öª¼¯×Ü¹À¼Æ ---
+% È«²¿Ê¹ÓÃÎ´ÂË²¨Á¿£¬ÒòÎª¿ØÖÆÁ¦uÖ±½Ó×÷ÓÃÓÚ¶¯Á¦Ñ§ÏµÍ³£¬²»ĞèÒª¾­¹ıÂË²¨Æ÷
+s_raw     = ed + w1*e + w2*a_f_raw;
+F_known   = -cm*ed - km*e;
+F_unc_hat = st.dk_hat*meas.y + st.dc_hat*meas.yd;
 
-% --- 7.6 ¿ØÖÆÂÉ ---
-u = (m/Ms) * (-K*s + w2*wc*a_f - w1*Bed) - F_known + F_unc_hat;
+% --- 7.6 ¿ØÖÆÂÉ È«²¿Ê¹ÓÃÎ´ÂË²¨Á¿ ---
+u = (m/Ms) * (-K*s_raw + w2*wc*a_f_raw - w1*ed) - F_known + F_unc_hat;
 
-u=0;
-
-if isfinite(ctl.u_sat)
-    u = max(-ctl.u_sat, min(ctl.u_sat, u));
-end
+% u = 0;
 
 % --- 7.7 ×ÔÊÊÓ¦ÂÉ£¨Ç°ÏòÅ·À­£©---
+s = Bed + w1*Be + w2*a_f;
 if ctl.adapt_on
     st.dk_hat = st.dk_hat - ctl.Gamma_k * s * By  * Ts;
     st.dc_hat = st.dc_hat - ctl.Gamma_c * s * Byd * Ts;
@@ -88,6 +86,13 @@ xBp = bp.Ad * xBp + bp.Bd * uIn; % ×´Ì¬·½³Ì£ºx[k+1] = Ad¡¤x[k] + Bd¡¤u[k]£¬¸ù¾İµ
 yOut = lp.Cd * xLp + lp.Dd * yBp;
 xLp = lp.Ad * xLp + lp.Bd * yBp;
 end
+
+function [yOut, xLp] = localLp(uIn, xLp, fltSys)
+    %  Ò»½×µÍÍ¨
+    lp = fltSys.lp;
+    yOut = lp.Cd * xLp + lp.Dd * uIn;
+    xLp = lp.Ad * xLp + lp.Bd * uIn;
+    end
 
 
 function [yOut, xBp] = localBp(uIn, xBp, fltSys)
