@@ -13,8 +13,8 @@ function out = equivStiffnessTheory(k3, k5, A, sigmaY)
 arguments
     k3     (1,1) double
     k5     (1,1) double
-    A      (1,1) double {mustBeNonnegative}
-    sigmaY (1,1) double {mustBeNonnegative}
+    A      (1,1) double
+    sigmaY (1,1) double
 end
 
 out.A = A;

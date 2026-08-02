@@ -66,10 +66,10 @@ flt.zeta_b   = 0.1;              % 带通阻尼比，带宽 = 2*zeta_b*omega_d
 flt.omega_c  = 10*flt.omega_d;   % 一阶低通截止频率
 
 %% 控制参数
-ctl.c1     = 20;                 % 状态误差面系数
-ctl.lambda = 1.0;                % 反作用力误差权重（c2 = lambda/omega_c）
-ctl.c2     = ctl.lambda/flt.omega_c;
-ctl.Ms     = 1 + ctl.c2*flt.omega_c;   % = 1 + lambda
+ctl.w1     = 20;                 % 状态误差面权重
+ctl.lambda = 1.0;                % 反作用力误差权重（w2 = lambda/omega_c）
+ctl.w2     = ctl.lambda/flt.omega_c;
+ctl.Ms     = 1 + ctl.w2*flt.omega_c;   % = 1 + lambda
 ctl.K      = 50;                 % 趋近增益
 ctl.Gamma_k = 1e3;               % 等效刚度自适应增益
 ctl.Gamma_c = 1e2;               % 等效阻尼自适应增益
@@ -85,7 +85,7 @@ exc.rand_ratio = 0.3;            % 随机分量功率占比（=0 时为纯简谐
 exc.amp        = 1.0;            % 整体幅值标度
 exc.seed       = 1;
 
-**参数化说明**：`c2 = lambda/omega_c` 使 `Ms = 1+lambda` 与 `omega_c` 解耦，
+**参数化说明**：`w2 = lambda/omega_c` 使 `Ms = 1+lambda` 与 `omega_c` 解耦，
 扫参时只扫 `lambda`，避免 `omega_c` 变化间接改变反作用力误差项权重。
 
 ## 3. 激励生成（RFE-AIC/funcs/genExcitation.m）
@@ -182,7 +182,7 @@ a_f  = lowpass(bandpass(edd))
 
 ### 7.3 复合误差面
 ```
-s = Bed + c1*Be + c2*a_f
+s = Bed + w1*Be + w2*a_f
 ```
 
 ### 7.4 已知补偿力
@@ -197,7 +197,7 @@ F_unc_hat = dk_hat*By + dc_hat*Byd
 
 ### 7.6 控制律
 ```
-u = (m/Ms) * ( -K*s + c2*omega_c*a_f - c1*Bed ) - F_known + F_unc_hat
+u = (m/Ms) * ( -K*s + w2*omega_c*a_f - w1*Bed ) - F_known + F_unc_hat
 ```
 （推导见文档 2.5.5 节，注意符号一致性，实现时逐项核对）
 

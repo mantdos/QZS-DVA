@@ -17,7 +17,7 @@ function fltSys = designBandpass(flt, fsCtrl)
 
 arguments
     flt    struct
-    fsCtrl (1,1) double {mustBePositive}
+    fsCtrl (1,1) double
 end
 
 wd = flt.omega_d;

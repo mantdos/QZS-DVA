@@ -13,7 +13,7 @@ arguments
     state (4,1) double
     u     (1,1) double
     xdd   (1,1) double
-    h     (1,1) double {mustBePositive}
+    h     (1,1) double
     plant struct
 end
 
@@ -32,25 +32,28 @@ end
 
 %% ------------------------------------------------------------------------
 function dX = localF(X, u, xdd, plant)
-[ydd, ymdd] = localAccel(X, u, xdd, plant);
-dX = [X(2); ydd; X(4); ymdd];
+    [ydd, ymdd] = localAccel(X, u, xdd, plant);
+    dX = [X(2); ydd; X(4); ymdd];
 end
 
 function [ydd, ymdd] = localAccel(X, u, xdd, plant)
-y   = X(1);
-yd  = X(2);
-ym  = X(3);
-ymd = X(4);
+    %   ×´Ì¬: state = [y; yd; ym; ym_d]
+    %   ¶ÔÏó:   m*ydd  + c*yd  + k1*y + k3*y^3 + k5*y^5 = -m*xdd + u
+    %   ²Î¿¼:   m*ymdd + c_m*ymd + k_m*ym                 = -m*xdd
+    y   = X(1);
+    yd  = X(2);
+    ym  = X(3);
+    ymd = X(4);
 
-m  = plant.m;
-c  = plant.c;
-k1 = plant.k1;
-k3 = plant.k3;
-k5 = plant.k5;
-km = plant.k_m;
-cm = plant.c_m;
+    m  = plant.m;
+    c  = plant.c;
+    k1 = plant.k1;
+    k3 = plant.k3;
+    k5 = plant.k5;
+    km = plant.k_m;
+    cm = plant.c_m;
 
-Fnl = k1*y + k3*y^3 + k5*y^5;
-ydd  = (-c*yd  - Fnl      - m*xdd + u) / m;
-ymdd = (-cm*ymd - km*ym   - m*xdd    ) / m;
+    Fnl = k1*y + k3*y^3 + k5*y^5;
+    ydd  = (-c*yd  - Fnl      - m*xdd + u) / m;
+    ymdd = (-cm*ymd - km*ym   - m*xdd    ) / m;
 end

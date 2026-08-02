@@ -43,13 +43,10 @@ end
 [~, iMax] = max(rmsY);
 fPeak = fGrid(iMax);
 
-% 抛物线细化（三点）
+% 抛物线细化（三点）；端点时跳过
 if iMax > 1 && iMax < numel(fGrid)
     f0 = fGrid(iMax-1); f1p = fGrid(iMax); f2 = fGrid(iMax+1);
     y0 = rmsY(iMax-1);  y1 = rmsY(iMax);   y2 = rmsY(iMax+1);
-    denom = (y0 - 2*y1 + y2);
-    if abs(denom) > eps
-        fPeak = f1p + 0.5*(y0 - y2)/denom * (f2 - f0)/2;
-    end
+    fPeak = f1p + 0.5*(y0 - y2)/(y0 - 2*y1 + y2) * (f2 - f0)/2;
 end
 end

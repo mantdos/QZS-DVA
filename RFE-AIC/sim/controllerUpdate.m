@@ -10,7 +10,7 @@ function [u, st, rec] = controllerUpdate(meas, st, ctl, plant, fltSys)
 
 arguments
     meas   struct
-    st     struct
+    st     struct   % 所有五路通道的滤波器状态变量，以及两个自适应参数
     ctl    struct
     plant  struct
     fltSys struct
@@ -21,8 +21,8 @@ m  = plant.m;
 km = plant.k_m;
 cm = plant.c_m;
 
-c1 = ctl.c1;
-c2 = ctl.c2;
+w1 = ctl.w1;
+w2 = ctl.w2;
 Ms = ctl.Ms;
 K  = ctl.K;
 wc = fltSys.omega_c;
@@ -32,22 +32,25 @@ e   = meas.y  - meas.ym;
 ed  = meas.yd - meas.ym_d;
 edd = meas.ydd - meas.ym_dd;
 
-% --- 7.2 带内提取（三路同构: BP → LP）---
-[Be,  st.bp_e,  st.lp_e]  = localCascade(e,        st.bp_e,  st.lp_e,  fltSys);
-[Bed, st.bp_ed, st.lp_ed] = localCascade(ed,       st.bp_ed, st.lp_ed, fltSys);
-[a_f, st.bp_edd,st.lp_edd]= localCascade(edd,      st.bp_edd,st.lp_edd,fltSys);
-[By,  st.bp_y,  st.lp_y]  = localCascade(meas.y,   st.bp_y,  st.lp_y,  fltSys);
-[Byd, st.bp_yd, st.lp_yd] = localCascade(meas.yd,  st.bp_yd, st.lp_yd, fltSys);
+% --- 7.2 、e、ed、y、yd：只过带通
+[Be,  st.bp_e]  = localBp(e,        st.bp_e,  fltSys);
+[Bed, st.bp_ed] = localBp(ed,       st.bp_ed, fltSys);
+[By,  st.bp_y]  = localBp(meas.y,   st.bp_y,  fltSys);
+[Byd, st.bp_yd] = localBp(meas.yd,  st.bp_yd, fltSys);
+% edd：带通 → 一阶低通
+[a_f,st.bp_edd,st.lp_edd]= localCascade(edd, st.bp_edd,st.lp_edd,fltSys);
 
 % --- 7.3 复合误差面 ---
-s = Bed + c1*Be + c2*a_f;
+s = Bed + w1*Be + w2*a_f;
 
 % --- 7.4 / 7.5 已知补偿 + 未知集总估计 ---
 F_known   = -cm*Bed - km*Be;
 F_unc_hat = st.dk_hat*By + st.dc_hat*Byd;
 
 % --- 7.6 控制律 ---
-u = (m/Ms) * (-K*s + c2*wc*a_f - c1*Bed) - F_known + F_unc_hat;
+u = (m/Ms) * (-K*s + w2*wc*a_f - w1*Bed) - F_known + F_unc_hat;
+
+u=0;
 
 if isfinite(ctl.u_sat)
     u = max(-ctl.u_sat, min(ctl.u_sat, u));
@@ -76,11 +79,19 @@ end
 
 %% ------------------------------------------------------------------------
 function [yOut, xBp, xLp] = localCascade(uIn, xBp, xLp, fltSys)
+%  离散状态空间标准形式：x[k+1]=Ad?x[k]+Bd?u[k]，y[k]=Cd?x[k]+Dd?u[k]
 % 带通 → 一阶低通
 bp = fltSys.bp;
 lp = fltSys.lp;
-yBp = bp.Cd * xBp + bp.Dd * uIn;
-xBp = bp.Ad * xBp + bp.Bd * uIn;
+yBp = bp.Cd * xBp + bp.Dd * uIn; % 输出方程：y[k] = Cd·x[k] + Dd·u[k]，根据当前时刻的输入和状态，计算当前时刻的输出
+xBp = bp.Ad * xBp + bp.Bd * uIn; % 状态方程：x[k+1] = Ad·x[k] + Bd·u[k]，根据当前时刻的输入和状态，提前计算下一时刻的状态，并回写到xBp中
 yOut = lp.Cd * xLp + lp.Dd * yBp;
 xLp = lp.Ad * xLp + lp.Bd * yBp;
+end
+
+
+function [yOut, xBp] = localBp(uIn, xBp, fltSys)
+bp = fltSys.bp;
+yOut = bp.Cd * xBp + bp.Dd * uIn;
+xBp = bp.Ad * xBp + bp.Bd * uIn;
 end

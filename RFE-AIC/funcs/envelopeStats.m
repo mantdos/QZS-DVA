@@ -17,7 +17,7 @@ function stats = envelopeStats(y, t, tDiscard)
 arguments
     y         (:,1) double
     t         (:,1) double
-    tDiscard  (1,1) double {mustBeNonnegative} = 0
+    tDiscard  (1,1) double = 0
 end
 
 idx = t >= tDiscard;
@@ -32,7 +32,7 @@ A = A(:);
 
 stats.A_mean = mean(A);
 stats.A_std  = std(A);
-stats.A_cv   = stats.A_std / max(stats.A_mean, eps);
+stats.A_cv   = stats.A_std / stats.A_mean;
 
 % 包络自相关 → 1/e 时间
 A0 = A - mean(A);
@@ -62,7 +62,7 @@ nfft = max(256, 2^nextpow2(nWin));
 df = mean(diff(fp));
 Gsum  = sum(Gp) * df;
 G2sum = sum(Gp.^2) * df;
-stats.f_env_bw = (Gsum^2) / max(G2sum, eps);
+stats.f_env_bw = (Gsum^2) / G2sum;
 
 fprintf(['[envelopeStats] A_mean=%.4e, A_cv=%.2f%%, tau_env=%.3f s, ' ...
     'f_env_bw=%.4f Hz\n'], stats.A_mean, 100*stats.A_cv, ...
